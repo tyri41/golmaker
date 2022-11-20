@@ -6,13 +6,13 @@ pub struct GolInstance {
 }
 
 impl GolInstance {
-    pub fn show(self: GolInstance) -> String {
+    pub fn show(self: &GolInstance) -> String {
         let vbar = format!("O{}O\n", "-".repeat(self.w as usize));
         let mut ret = vbar.clone();
-        for line in self.cells {
+        for line in &self.cells {
             ret.push('|');
             for c in line {
-                if c > 0 {
+                if *c > 0 {
                     ret.push('#');
                 } else {
                     ret.push(' ');
