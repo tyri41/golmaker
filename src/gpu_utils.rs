@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use vulkano::{
     buffer::{BufferUsage, CpuAccessibleBuffer},
     command_buffer::{
@@ -7,39 +9,108 @@ use vulkano::{
         allocator::StandardDescriptorSetAllocator, PersistentDescriptorSet, WriteDescriptorSet,
     },
     device::{
-        physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo,
+        physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo, Queue,
     },
     instance::{Instance, InstanceCreateInfo},
     memory::allocator::StandardMemoryAllocator,
     pipeline::{ComputePipeline, Pipeline, PipelineBindPoint},
     sync::{self, GpuFuture},
-    VulkanLibrary,
+    VulkanLibrary, shader::ShaderModule,
 };
 
-use crate::{gpu_utils::{init, get_compute_pipeline}, gol_instance::{self, GolInstance}};
+pub fn init() -> (Arc<vulkano::device::Device>, Arc<Queue>) {
+    // As with other examples, the first step is to create an instance.
+    let library = VulkanLibrary::new().unwrap();
+    let instance = Instance::new(
+        library,
+        InstanceCreateInfo {
+            // Enable enumerating devices that use non-conformant vulkan implementations. (ex. MoltenVK)
+            enumerate_portability: true,
+            ..Default::default()
+        },
+    )
+    .unwrap();
 
-const VALUE_MUL: u32 = 14;
+    // Choose which physical device to use.
+    let device_extensions = DeviceExtensions {
+        khr_storage_buffer_storage_class: true,
+        ..DeviceExtensions::empty()
+    };
+    let (physical_device, queue_family_index) = instance
+        .enumerate_physical_devices()
+        .unwrap()
+        .filter(|p| p.supported_extensions().contains(&device_extensions))
+        .filter_map(|p| {
+            // The Vulkan specs guarantee that a compliant implementation must provide at least one queue
+            // that supports compute operations.
+            p.queue_family_properties()
+                .iter()
+                .position(|q| q.queue_flags.compute)
+                .map(|i| (p, i as u32))
+        })
+        .min_by_key(|(p, _)| match p.properties().device_type {
+            PhysicalDeviceType::DiscreteGpu => 0,
+            PhysicalDeviceType::IntegratedGpu => 1,
+            PhysicalDeviceType::VirtualGpu => 2,
+            PhysicalDeviceType::Cpu => 3,
+            PhysicalDeviceType::Other => 4,
+            _ => 5,
+        })
+        .unwrap();
 
-// fn gol_to_buff(gol: &GolInstance) -> Vec<i32> {
-//     let cells = gol.cells;
-// }
+    println!(
+        "Using device: {} (type: {:?})",
+        physical_device.properties().device_name,
+        physical_device.properties().device_type
+    );
 
-pub fn run_gpu() {
-    let (device, queue) = init();
-    mod cs {
-        vulkano_shaders::shader! {
-            ty: "compute",
-            path: "./src/shaders/test_shader2.glsl",
-            types_meta: {
-                use bytemuck::{Pod, Zeroable};
+    // Now initializing the device.
+    let (device, mut queues) = Device::new(
+        physical_device,
+        DeviceCreateInfo {
+            enabled_extensions: device_extensions,
+            queue_create_infos: vec![QueueCreateInfo {
+                queue_family_index,
+                ..Default::default()
+            }],
+            ..Default::default()
+        },
+    )
+    .unwrap();
+
+    // Since we can request multiple queues, the `queues` variable is in fact an iterator. In this
+    // example we use only one queue, so we just retrieve the first and only element of the
+    // iterator and throw it away.
+    let queue = queues.next().unwrap();
     
-                #[derive(Clone, Copy, Zeroable, Pod)]
-            },
-        }
-    }
-    let shader = cs::load(device.clone()).unwrap();
+    (device, queue)
+}
 
-    let pipeline = get_compute_pipeline(device.clone(), shader.clone());
+pub fn get_compute_pipeline(device: Arc<Device>, shader: Arc<ShaderModule>) -> Arc<ComputePipeline> {
+    ComputePipeline::new(
+        device.clone(),
+        shader.entry_point("main").unwrap(),
+        &(),
+        None,
+        |_| {},
+    )
+    .unwrap()
+}
+
+#[allow(dead_code)]
+pub fn test_gpu() {
+    let (device, queue) = init();
+
+    let pipeline = {
+        mod cs {
+            vulkano_shaders::shader! {
+                ty: "compute",
+                path: "./src/shaders/test_shader.glsl"
+            }
+        }
+        let shader = cs::load(device.clone()).unwrap();
+        get_compute_pipeline(device.clone(), shader.clone())
+    };
 
     let memory_allocator = StandardMemoryAllocator::new_default(device.clone());
     let descriptor_set_allocator = StandardDescriptorSetAllocator::new(device.clone());
@@ -75,15 +146,9 @@ pub fn run_gpu() {
     let set = PersistentDescriptorSet::new(
         &descriptor_set_allocator,
         layout.clone(),
-        [
-            WriteDescriptorSet::buffer(0, data_buffer.clone()),
-        ],
+        [WriteDescriptorSet::buffer(0, data_buffer.clone())],
     )
     .unwrap();
-
-    let params = cs::ty::Params {
-        val: VALUE_MUL
-    };
 
     // In order to execute our operation, we have to build a command buffer.
     let mut builder = AutoCommandBufferBuilder::primary(
@@ -107,7 +172,6 @@ pub fn run_gpu() {
             0,
             set,
         )
-        .push_constants(pipeline.layout().clone(), 0, params)
         .dispatch([1024, 1, 1])
         .unwrap();
     // Finish building the command buffer by calling `build`.
@@ -144,7 +208,7 @@ pub fn run_gpu() {
     // The call to `read()` would return an error if the buffer was still in use by the GPU.
     let data_buffer_content = data_buffer.read().unwrap();
     for n in 0..65536u32 {
-        assert_eq!(data_buffer_content[n as usize], n * VALUE_MUL);
+        assert_eq!(data_buffer_content[n as usize], n * 12);
     }
 
     println!("Success");

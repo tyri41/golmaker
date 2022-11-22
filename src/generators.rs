@@ -1,6 +1,7 @@
 use crate::gol_instance::GolInstance;
 use rand::Rng;
 
+#[allow(dead_code)]
 pub fn gen_small() -> GolInstance {
     GolInstance {
         h: 3,
@@ -9,6 +10,7 @@ pub fn gen_small() -> GolInstance {
     }
 }
 
+#[allow(dead_code)]
 pub fn gen_random(w: usize, h: usize) -> GolInstance {
     let mut rng = rand::thread_rng();
     let mut cells = Vec::with_capacity(h);

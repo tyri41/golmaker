@@ -168,6 +168,7 @@ dependencies = [
 name = "golmaker"
 version = "0.1.0"
 dependencies = [
+ "bytemuck",
  "rand",
  "vulkano",
  "vulkano-shaders",

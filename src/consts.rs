@@ -1,0 +1,1 @@
+pub const GROUP_SIZE: usize = 64;
