@@ -10,16 +10,18 @@ use vulkano::{
     pipeline::{Pipeline, PipelineBindPoint},
     sync::{self, GpuFuture},
 };
+use std::time::Instant;
 
-use crate::{gpu_utils::{init, get_compute_pipeline}, gol_instance::{self, GolInstance}};
+use crate::{gpu_utils::{init, get_compute_pipeline}};
 
-const RUN_COUNT: u32 = 5;
+const RUN_COUNT: u32 = 5000;
 
 // fn gol_to_buff(gol: &GolInstance) -> Vec<i32> {
 //     let cells = gol.cells;
 // }
 
 pub fn run_gpu() {
+    let before = Instant::now();
     let (device, queue) = init();
     mod cs {
         vulkano_shaders::shader! {
@@ -101,13 +103,13 @@ pub fn run_gpu() {
     )
     .unwrap();
     builder
-        .bind_pipeline_compute(pipeline.clone())
-        .bind_descriptor_sets(
-            PipelineBindPoint::Compute,
-            pipeline.layout().clone(),
-            0,
-            set.clone(),
-        );
+        .bind_pipeline_compute(pipeline.clone());
+        // .bind_descriptor_sets(
+        //     PipelineBindPoint::Compute,
+        //     pipeline.layout().clone(),
+        //     0,
+        //     set.clone(),
+        // );
     
     for _i in 0..RUN_COUNT {
         builder
@@ -144,5 +146,5 @@ pub fn run_gpu() {
         assert_eq!(data_buffer_content[n as usize], n + (2 * RUN_COUNT));
     }
 
-    println!("Success");
+    println!("Success {:?} / {}", before.elapsed(), RUN_COUNT * 2);
 }

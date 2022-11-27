@@ -1,0 +1,7 @@
+10k iterations (laps: release + HP cpu mode):
+
+    swapper ~460ms
+
+    same buffer ~360ms
+     
+    swap in shader (using if) ~480ms
