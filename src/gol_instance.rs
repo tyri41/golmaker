@@ -6,6 +6,7 @@ pub struct GolInstance {
 }
 
 impl GolInstance {
+    #[allow(dead_code)]
     pub fn show(self: &GolInstance) -> String {
         let vbar = format!("O{}O\n", "-".repeat(self.w as usize));
         let mut ret = vbar.clone();

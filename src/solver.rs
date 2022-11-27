@@ -37,6 +37,7 @@ pub fn step(gol: &mut GolInstance) {
     gol.cells = cells;
 }
 
+#[allow(dead_code)]
 pub fn iterate(gol: &mut GolInstance, t: usize, prt: bool) {
     for _i in 0..t {
         step(gol);

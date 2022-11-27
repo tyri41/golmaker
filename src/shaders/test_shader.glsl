@@ -8,5 +8,5 @@ layout(set = 0, binding = 0) buffer Data {
 
 void main() {
     uint idx = gl_GlobalInvocationID.x;
-    data.data[idx] *= 12;
+    data.data[idx] += 1;
 }

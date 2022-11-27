@@ -7,7 +7,7 @@ mod consts;
 
 use solver_gpu::run_gpu;
 
-use crate::{generators::gen_random, solver::iterate};
+// use crate::{generators::gen_random, solver::iterate};
 
 fn main() {
     // let mut instance = gen_random(7, 7);
