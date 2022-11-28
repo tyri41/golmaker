@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct GolInstance {
     pub h: usize,
     pub w: usize,
@@ -23,5 +23,25 @@ impl GolInstance {
         }
         ret.push_str(&vbar);
         ret
+    }
+
+    #[allow(dead_code)]
+    pub fn flatten(self: &GolInstance) -> Vec<i32> {
+        self.cells.clone().into_iter().flatten().collect()
+    }
+
+    #[allow(dead_code)]
+    pub fn update_flat(self: &mut GolInstance, data: Vec<i32>) {
+        self.cells = data.chunks(self.w).map(|l| l.to_vec()).collect();
+    }
+}
+
+
+#[allow(dead_code)]
+pub fn from_flat(w: usize, data: Vec<i32>) -> GolInstance {
+    let h = data.len() / w;
+    GolInstance { 
+        h, w,
+        cells: data.chunks(w).map(|l| l.to_vec()).collect()
     }
 }

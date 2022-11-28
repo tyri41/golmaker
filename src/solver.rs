@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use crate::gol_instance::GolInstance;
 
 // replace gol.cells with next iteration of GOL (with loop boundaries)
@@ -39,10 +41,12 @@ pub fn step(gol: &mut GolInstance) {
 
 #[allow(dead_code)]
 pub fn iterate(gol: &mut GolInstance, t: usize, prt: bool) {
+    let before = Instant::now();
     for _i in 0..t {
         step(gol);
         if prt {
             println!("{}", gol.show());
         }
     }
+    println!("GOL CPU finished in {:?} / {} iterations", before.elapsed(), t);
 }
