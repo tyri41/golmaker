@@ -5,30 +5,40 @@ mod solver_gpu;
 mod gpu_utils;
 mod consts;
 
-
 use crate::{generators::gen_random, solver::iterate, solver_gpu::iterate_gpu};
+use clap::Parser;
+use strum_macros::EnumString;
+use std::str::FromStr;
+
+#[derive(Debug, Clone, EnumString)]
+enum Approach {
+    CPU,
+    GPU,
+}
+
+#[derive(Parser, Debug)]
+struct Cli {
+    /// Width
+    w: usize,
+    /// Height
+    h: usize,
+    /// time
+    t: usize,
+    /// type of algorithm
+    mode: String
+}
 
 fn main() {
-    let w = 500;
-    let h = 500;
-    let t = 30;
-    let instance = gen_random(w, h);
-    // println!("Base:");
-    // println!("{}", instance.show());
+    let args = Cli::parse();
+    let mode = Approach::from_str(&args.mode).unwrap();
 
-    let mut inst_cpu = instance.clone();
-    let mut inst_gpu = instance.clone();
-    assert_eq!(inst_cpu, inst_gpu);
-
-    println!("CPU based:");
-    iterate(&mut inst_cpu, t, false);
-    // println!("{}", inst_cpu.show());
-
-    println!("GPU based:");
-    // iterate_gpu_debug(&mut inst_gpu, t, true);
-    iterate_gpu(&mut inst_gpu, t);
-    // println!("{}", inst_gpu.show());
-
-    assert_eq!(inst_cpu, inst_gpu);
-    println!("gol match!");
+    let mut instance = gen_random(args.w, args.h);
+    match mode {
+        Approach::CPU => {
+            iterate(&mut instance, args.t, false);
+        },
+        Approach::GPU => {
+            iterate_gpu(&mut instance, args.t);
+        },
+    }
 }
