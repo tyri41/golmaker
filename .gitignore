@@ -1,2 +1,3 @@
 /target
-bencher/logs/*.csv
+bencher/logs/*/*.csv
+bencher/logs/*/*.json
