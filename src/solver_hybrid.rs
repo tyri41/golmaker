@@ -1,3 +1,4 @@
+// TODO
 use vulkano::{
     buffer::{BufferUsage, CpuAccessibleBuffer},
     command_buffer::{
@@ -6,13 +7,11 @@ use vulkano::{
     descriptor_set::{
         allocator::StandardDescriptorSetAllocator, PersistentDescriptorSet, WriteDescriptorSet,
     },
-    shader::ShaderModule,
     memory::allocator::StandardMemoryAllocator,
     pipeline::{Pipeline, PipelineBindPoint},
     sync::{self, GpuFuture},
 };
-use std::{time::Instant, fs::File, io::Read};
-use bytemuck::{Pod, Zeroable};
+use std::time::Instant;
 
 use crate::{gpu_utils::{init, get_compute_pipeline}, gol_instance::GolInstance};
 
@@ -27,35 +26,20 @@ fn ceil_div(a: u32, b: u32) -> u32 {
 pub fn iterate_gpu(gol: &mut GolInstance, t: usize) {
     let before = Instant::now();
     let (device, queue) = init();
-    // mod cs {
-    //     vulkano_shaders::shader! {
-    //         ty: "compute",
-    //         path: "./src/shaders/gol_shader.glsl",
-    //         types_meta: {
-    //             use bytemuck::{Pod, Zeroable};
+    mod cs {
+        vulkano_shaders::shader! {
+            ty: "compute",
+            path: "./src/shaders/gol_shader.glsl",
+            types_meta: {
+                use bytemuck::{Pod, Zeroable};
     
-    //             #[derive(Clone, Copy, Zeroable, Pod)]
-    //         },
-    //     }
-    // }
-    // let shader = cs::load(device.clone()).unwrap();
-
-    #[derive(Clone, Copy, Zeroable, Pod)]
-    #[repr(C)]
-    struct CsParams {
-        w: u32,
-        h: u32
+                #[derive(Clone, Copy, Zeroable, Pod)]
+            },
+        }
     }
+    let shader = cs::load(device.clone()).unwrap();
 
-    let bit_shader = {
-        let mut f = File::open("src/shaders/gol_shader.spv")
-            .expect("Can't find file src/shaders/gol_shader.spv");
-        let mut v = vec![];
-        f.read_to_end(&mut v).unwrap();
-        unsafe { ShaderModule::from_bytes(device.clone(), &v) }.unwrap()
-    };
-
-    let pipeline = get_compute_pipeline(device.clone(), bit_shader.clone());
+    let pipeline = get_compute_pipeline(device.clone(), shader.clone());
 
     let memory_allocator = StandardMemoryAllocator::new_default(device.clone());
     let descriptor_set_allocator = StandardDescriptorSetAllocator::new(device.clone());
@@ -111,7 +95,7 @@ pub fn iterate_gpu(gol: &mut GolInstance, t: usize) {
     )
     .unwrap();
 
-    let params = CsParams {
+    let params = cs::ty::Params {
         h: gol.h as u32,
         w: gol.w as u32
     };

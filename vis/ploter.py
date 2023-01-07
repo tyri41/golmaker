@@ -139,5 +139,5 @@ def plotComp():
 
 if __name__ == '__main__':
     # plotBoundary()
-    plotError()
-    # plotComp()
+    # plotError()
+    plotComp()

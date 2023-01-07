@@ -14,6 +14,8 @@ use std::str::FromStr;
 enum Approach {
     CPU,
     GPU,
+    HYB,
+    CMP
 }
 
 #[derive(Parser, Debug)]
@@ -40,5 +42,15 @@ fn main() {
         Approach::GPU => {
             iterate_gpu(&mut instance, args.t);
         },
+        Approach::HYB => todo!(),
+        Approach::CMP => {
+            let mut another_instance = instance.clone();
+
+            iterate(&mut instance, args.t, false);
+            iterate_gpu(&mut another_instance, args.t);
+
+            assert_eq!(instance, another_instance);
+            println!("Compare OK");
+        }
     }
 }
